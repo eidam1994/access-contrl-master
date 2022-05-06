@@ -135,6 +135,7 @@
   import ProjectSetting from './ProjectSetting.vue';
   import { AsideMenu } from '@/layout/components/Menu';
   import { useProjectSetting } from '@/hooks/setting/useProjectSetting';
+  import { logout } from '@/api/system/user';
 
   export default defineComponent({
     name: 'PageHeader',
@@ -225,7 +226,7 @@
         });
       };
 
-      // 退出登录
+      //
       const doLogout = () => {
         dialog.info({
           title: '提示',
@@ -233,6 +234,7 @@
           positiveText: '确定',
           negativeText: '取消',
           onPositiveClick: () => {
+            logout();
             userStore.logout().then(() => {
               message.success('成功退出登录');
               // 移除标签页

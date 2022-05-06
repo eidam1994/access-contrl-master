@@ -6,6 +6,7 @@ import { ACCESS_TOKEN } from '@/store/mutation-types';
 import { storage } from '@/utils/Storage';
 import { PageEnum } from '@/enums/pageEnum';
 import { ErrorPageRoute } from '@/router/base';
+// import { c } from 'naive-ui';
 
 const LOGIN_PATH = PageEnum.BASE_LOGIN;
 
@@ -57,6 +58,8 @@ export function createRouterGuards(router: Router) {
     }
 
     const userInfo = await userStore.GetInfo();
+
+    // const userInfo = {};
 
     const routes = await asyncRouteStore.generateRoutes(userInfo);
 

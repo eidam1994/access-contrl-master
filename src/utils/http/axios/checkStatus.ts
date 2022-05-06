@@ -23,6 +23,9 @@ export function checkStatus(status: number, msg: string): void {
     case 408:
       $message.error('网络请求超时');
       break;
+    case 426:
+      $message.error('用户名不存在或者密码错误');
+      break;
     case 500:
       $message.error('服务器错误,请联系管理员!');
       break;

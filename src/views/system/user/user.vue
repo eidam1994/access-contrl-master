@@ -35,14 +35,38 @@
         :label-width="80"
         class="py-4"
       >
-        <n-form-item label="角色名称" path="roleName">
-          <n-input placeholder="请输入角色名称" v-model:value="formParams.roleName" />
+        <n-form-item label="用户名" path="username">
+          <n-input
+            :disabled="isUpdatePassword"
+            placeholder="请输入用户名"
+            v-model:value="formParams.username"
+          />
         </n-form-item>
-        <n-form-item label="角色标识" path="roleCode">
-          <n-input placeholder="请输入角色标识" v-model:value="formParams.roleCode" />
+        <n-form-item v-if="isUpdatePassword || isAddUser" label="密码" path="password">
+          <n-input
+            placeholder="请输入密码"
+            type="password"
+            v-model:value="formParams.password"
+            :input-props="{ autocomplete: 'new-password' }"
+          />
         </n-form-item>
-        <n-form-item label="角色描述" path="roleDesc">
-          <n-input placeholder="请输入角色描述" v-model:value="formParams.roleDesc" />
+        <n-form-item v-if="isUpdatePassword" label="确认密码" path="confirmPassword">
+          <n-input
+            placeholder="请再次输入密码"
+            type="password"
+            v-model:value="formParams.confirmPassword"
+            :input-props="{ autocomplete: 'new-password' }"
+          />
+        </n-form-item>
+        <n-form-item v-if="!isUpdatePassword" label="姓名" path="nickName">
+          <n-input placeholder="请输入姓名" v-model:value="formParams.nickName" />
+        </n-form-item>
+        <n-form-item v-if="!isUpdatePassword" label="角色" path="roleId">
+          <n-select
+            placeholder="请选择角色"
+            v-model:value="formParams.roleId"
+            :options="roleOptions"
+          />
         </n-form-item>
       </n-form>
 
@@ -58,39 +82,68 @@
 
 <script lang="ts" setup>
   import { h, reactive, ref } from 'vue';
-  import { useDialog, useMessage } from 'naive-ui';
+  import { FormItemRule, useDialog, useMessage } from 'naive-ui';
   import { BasicTable, TableAction } from '@/components/Table';
   import { BasicForm, useForm } from '@/components/Form/index';
-  import { addRole, deleteRole, getRoleList, updateRole } from '@/api/table/role';
+  import { addUser, deleteUser, getUserList, updateUser } from '@/api/table/user';
   import { columns } from './columns';
   import { PlusOutlined } from '@vicons/antd';
-  import { cloneDeep } from 'lodash';
+  import { cloneDeep } from "lodash";
+
+  const roleOptions = [
+    {
+      label: '管理员',
+      value: '1',
+    },
+  ];
 
   const rules = {
-    roleName: {
+    username: {
       required: true,
       trigger: ['blur', 'input'],
-      message: '请输入角色名称',
+      message: '请输入用户名',
     },
-    roleDesc: {
+    nickName: {
       required: true,
       trigger: ['blur', 'input'],
-      message: '请输入角色描述',
+      message: '请输入姓名',
     },
-    roleCode: {
+    password: {
       required: true,
       trigger: ['blur', 'input'],
-      message: '请输入角色标识',
+      message: '请输入密码',
+    },
+    confirmPassword: [
+      {
+        required: true,
+        trigger: ['blur', 'input'],
+        message: '请输入密码',
+      },
+      {
+        validator: validatePasswordStartWith,
+        message: '两次密码输入不一致',
+        trigger: 'input',
+      },
+      {
+        validator: validatePasswordSame,
+        message: '两次密码输入不一致',
+        trigger: ['blur', 'password-input'],
+      },
+    ],
+    roleId: {
+      required: true,
+      trigger: ['blur', 'change'],
+      message: '请选择角色',
     },
   };
 
   const schemas = [
     {
-      field: 'roleName',
+      field: 'username',
       component: 'NInput',
-      label: '角色名称',
+      label: '用户名',
       componentProps: {
-        placeholder: '请输入角色名称',
+        placeholder: '请输入用户名',
       },
     },
   ];
@@ -100,17 +153,19 @@
   const actionRef = ref();
   const dialog = useDialog();
   const showModal = ref(false);
-  const isAddRole = ref(false);
-  const isUpdateRole = ref(false);
+  const isAddUser = ref(false);
+  const isUpdateUser = ref(false);
+  const isUpdatePassword = ref(false);
   const formBtnLoading = ref(false);
   const title = ref('');
 
   const initFormParams = {
-    roleId: '',
-    roleName: '',
-    roleDesc: '',
-    roleCode: '',
-    dsType: '0'
+    userId: '',
+    username: '',
+    password: '',
+    confirmPassword: '',
+    nickName: '',
+    roleId: null,
   };
   const formParams = ref(cloneDeep(initFormParams));
 
@@ -135,6 +190,10 @@
             label: '编辑',
             onClick: handleEdit.bind(null, record),
           },
+          {
+            label: '修改密码',
+            onClick: handlePasswordEdit.bind(null, record),
+          },
         ],
       });
     },
@@ -148,22 +207,35 @@
   });
 
   const loadDataTable = async (res) => {
-    return await getRoleList({ ...getFieldsValue(), ...params.value, ...res });
+    return await getUserList({ ...getFieldsValue(), ...params.value, ...res });
   };
 
   function handleAdd() {
-    title.value = '新增角色';
+    title.value = '新增用户';
     openModal();
-    isAddRole.value = true;
-    isUpdateRole.value = false;
+    isAddUser.value = true;
+    isUpdateUser.value = false;
+    isUpdatePassword.value = false;
   }
 
   function handleEdit(record: Recordable) {
-    title.value = '修改角色';
+    title.value = '修改用户';
     openModal();
-    isUpdateRole.value = true;
-    isAddRole.value = false;
+    isUpdateUser.value = true;
+    isUpdatePassword.value = false;
+    isAddUser.value = false;
     formParams.value = record;
+    formParams.value.roleId = record.roleList[0].roleId.toString();
+  }
+
+  function handlePasswordEdit(record: Recordable) {
+    title.value = '修改密码';
+    openModal();
+    isUpdateUser.value = false;
+    isUpdatePassword.value = true;
+    isAddUser.value = false;
+    formParams.value = record;
+    formParams.value.password = '';
   }
 
   function reloadTable() {
@@ -175,10 +247,10 @@
     formBtnLoading.value = true;
     formRef.value.validate((errors) => {
       if (!errors) {
-        if (!isUpdateRole.value) {
-          addRole(formParams.value)
+        if (!isUpdateUser.value) {
+          addUser(formParams.value)
             .then(() => {
-              message.success('新增角色成功');
+              message.success('新增用户成功');
               setTimeout(() => {
                 showModal.value = false;
                 reloadTable();
@@ -188,9 +260,9 @@
               formBtnLoading.value = false;
             });
         } else {
-          updateRole(formParams.value)
+          updateUser(formParams.value)
             .then(() => {
-              message.success('修改角色成功');
+              message.success('修改用户成功');
               setTimeout(() => {
                 showModal.value = false;
                 reloadTable();
@@ -209,11 +281,11 @@
   function handleDelete(record: Recordable) {
     dialog.warning({
       title: '警告',
-      content: '确定要删除该角色信息吗？',
+      content: '确定要删除该用户信息吗？',
       positiveText: '确定',
       negativeText: '不确定',
       onPositiveClick: () => {
-        deleteRole(record.roleId).then((res) => {
+        deleteUser(record.userId).then((res) => {
           reloadTable();
           message.success('删除成功');
         });
@@ -236,6 +308,17 @@
   function openModal() {
     resetFormValue();
     showModal.value = true;
+  }
+
+  function validatePasswordStartWith(rule: FormItemRule, value: string): boolean {
+    return (
+      !!formParams.password &&
+      formParams.password.startsWith(value) &&
+      formParams.password.length >= value.length
+    );
+  }
+  function validatePasswordSame(rule: FormItemRule, value: string): boolean {
+    return value === formParams.password;
   }
 </script>
 

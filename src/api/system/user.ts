@@ -17,7 +17,7 @@ export interface BasicPageParams {
  */
 export function getUserInfo() {
   return http.request({
-    url: '/admin_info',
+    url: '/admin/user/info',
     method: 'get',
   });
 }
@@ -26,14 +26,18 @@ export function getUserInfo() {
  * @description: 用户登录
  */
 export function login(params) {
-  return http.request<BasicResponseModel>(
+  return http.request(
     {
-      url: '/login',
-      method: 'POST',
+      url: '/auth/oauth/token',
+      method: 'GET',
       params,
+      headers: {
+        Authorization: 'Basic dGVzdDp0ZXN0',
+      },
     },
     {
       isTransformResponse: false,
+      joinParamsToUrl: true,
     }
   );
 }
@@ -57,10 +61,9 @@ export function changePassword(params, uid) {
 /**
  * @description: 用户登出
  */
-export function logout(params) {
+export function logout() {
   return http.request({
-    url: '/login/logout',
-    method: 'POST',
-    params,
+    url: '/auth/token/logout',
+    method: 'DELETE',
   });
 }

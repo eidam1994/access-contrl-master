@@ -96,6 +96,8 @@
   interface FormState {
     username: string;
     password: string;
+    scope: string;
+    grant_type: string;
   }
 
   const formRef = ref();
@@ -131,19 +133,22 @@
         const params: FormState = {
           username,
           password,
+          scope: 'server',
+          grant_type: 'password',
         };
 
         try {
-          const { code, message: msg } = await userStore.login(params);
+          // params.password = '1sCBV4pUpNKj4HCOGGR/qA==';
+          const { access_token } = await userStore.login(params);
           message.destroyAll();
-          if (code == ResultEnum.SUCCESS) {
+          if (access_token) {
             const toPath = decodeURIComponent((route.query?.redirect || '/') as string);
             message.success('登录成功，即将进入系统');
             if (route.name === LOGIN_NAME) {
               router.replace('/');
             } else router.replace(toPath);
           } else {
-            message.info(msg || '登录失败');
+            message.info('登录失败');
           }
         } finally {
           loading.value = false;

@@ -1,11 +1,11 @@
 export const columns = [
   {
-    title: '角色名称',
-    key: 'roleName',
+    title: '用户名',
+    key: 'username',
   },
   {
-    title: '角色描述',
-    key: 'roleDesc',
+    title: '姓名',
+    key: 'nickName',
   },
   {
     title: '创建日期',
